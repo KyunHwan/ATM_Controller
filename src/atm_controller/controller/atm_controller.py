@@ -2,7 +2,6 @@ from atm_controller.future_integration_classes.atm_device import ATMDevice
 from atm_controller.future_integration_classes.ui_controller import UIControllerWrapper, ATMState, AccountInteraction
 
 
-
 class ATMController:
     """
     This is the controller class for the ATM system.
@@ -16,14 +15,23 @@ class ATMController:
 
     @classmethod
     def _reset_states(cls):
+        """
+        Resets states of the ATM device and the BankInfo that has retrieved from the bank system.
+        """
         ATMDevice.reset_states()
 
     @classmethod
     def _remove_card(cls):
+        """
+        Removes the card from the ATM device
+        """
         ATMDevice.remove_card()
 
     @classmethod
     def _set_ui_state(cls, state: ATMState, data = None):
+        """
+        Sets UI state to state with appropriate data for the corresponding state
+        """
         UIControllerWrapper.setStateTo(state, data)
         
     @classmethod
@@ -31,17 +39,21 @@ class ATMController:
         """
         Implemented as a condition for having the controller on.
         """
-        return ATMDevice.device_on()
+        return ATMDevice.is_device_on()
 
     @classmethod
     def _wait_card_insertion(cls):
         """
-        This is a wrapper for 
+        Prompts the device to wait until it detects card insertion.
+        It is assumed that card has been inserted henceforth
         """
         ATMDevice.card_inserted()
 
     @classmethod 
     def _card_read_success(cls) -> bool:
+        """
+        Prompts the device to read the inserted card.
+        """
         success, message = ATMDevice.card_read_success()
         if success:
             UIControllerWrapper.message(ATMState.READ_CARD, message)
@@ -52,7 +64,8 @@ class ATMController:
     @classmethod
     def _enter_pin_success(cls) -> bool:
         """
-        This has to check for 4 digits and if less than, then prompt the user to input more
+        This prompts the user to input 4 digit number. If it doesn't match that stored in the system,
+        prompts the user again to input the pin until it reaches the limit. 
         """
         for i in range(cls._num_pin_try_limit):
             pin = ""
@@ -75,7 +88,9 @@ class ATMController:
     @classmethod
     def _select_account(cls) -> int:
         """
-        Waits for the user to choose an account connected to the card
+        Waits for the user to choose an account connected to the card.
+        On the UI side, it already has UI elements displayed to show accounts 
+        retrieved from the system with index associated with each element. 
         """
         selected_account = UIControllerWrapper.select_account()
         return selected_account
@@ -83,7 +98,8 @@ class ATMController:
     @classmethod
     def _deposit(cls, amount: int, account: int) -> bool:
         """
-        Interact with bank system to deposit
+        Waits for the right amount to be deposited to the machine.
+        Then the amount is digitally deposited to the account in the bank system.
         """
         ATMDevice.waitForCashDeposit(amount) # Waits for the cash to be placed in the ATM
         return ATMDevice.deposit(amount, account)
@@ -91,18 +107,26 @@ class ATMController:
     @classmethod
     def _withdraw(cls, amount: int, account: int) -> bool:
         """
-        Interact with bank system to withdraw
+        Digitally withdraws amount from the bank account.
+        Cash is withdrawn from the cash bin.
+        Waits for the user to retrieve the cash from the device. 
         """
         success = ATMDevice.withdraw(amount, account)
-        ATMDevice.waitForCashWithdraw() # Waits for the cash to be removed from the ATM
+        ATMDevice.waitForCashRemoval() # Waits for the cash to be removed from the ATM
         return success 
 
     @classmethod
     def _account_interaction(cls) -> AccountInteraction:
+        """
+        Waits for the user to choose an action (ie. withdraw or deposit)
+        """
         return UIControllerWrapper.get_user_action()
         
     @classmethod
     def _choose_action_amount(cls) -> int:
+        """
+        Waits for the user to write the amount for the action chosen.
+        """
         return UIControllerWrapper.get_action_amount()
 
     @classmethod
@@ -153,6 +177,5 @@ class ATMController:
             else:
                 cls._withdraw(cash_amount, selected_account)
             
+            # Action completed. Not going back to the initial phase
             cls._set_ui_state(ATMState.ACTION_COMPLETE)
-
-

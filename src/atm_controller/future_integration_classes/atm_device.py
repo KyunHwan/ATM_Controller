@@ -16,7 +16,7 @@ class ATMDevice:
     card_inserted = False # ATM device keeps track of the state of whether a card has been inserted
 
     @classmethod
-    def device_on(cls) -> bool:
+    def is_device_on(cls) -> bool:
         return cls.device_on
 
     @classmethod
